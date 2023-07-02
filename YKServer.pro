@@ -50,7 +50,9 @@ SOURCES += \
     entity/respondobj_device.cpp \
     entity/respondobj_ps1.cpp \
     entity/respondobj_sl4.cpp \
+    entity/respondobj_treat_plan.cpp \
     impl/configimpl.cpp \
+    impl/dataparser.cpp \
     impl/dataparser_a1.cpp \
     impl/dataparser_a1_device_data.cpp \
     impl/dataparser_a1s.cpp \
@@ -69,6 +71,7 @@ SOURCES += \
     impl/dataparser_ps1_device_data.cpp \
     impl/dataparser_sl4.cpp \
     impl/dataparser_sl4_device_data.cpp \
+    impl/dataparser_treat_plan.cpp \
     impl/dataparserfactory.cpp \
     impl/dataparserfactory_device.cpp \
     impl/dataparserfactory_device_a1.cpp \
@@ -86,10 +89,11 @@ SOURCES += \
     impl/ztservice_thread.cpp \
     main.cpp \
     mainwindow.cpp \
-    qstringtools.cpp \
     util/httpclient.cpp \
+    util/jsontools.cpp \
     util/log.cpp \
     util/logmgr.cpp \
+    util/qstringtools.cpp \
     util/tcpserver.cpp \
 
 HEADERS += \
@@ -125,7 +129,9 @@ HEADERS += \
     entity/respondobj_device.h \
     entity/respondobj_ps1.h \
     entity/respondobj_sl4.h \
+    entity/respondobj_treat_plan.h \
     impl/configimpl.h \
+    impl/dataparser.h \
     impl/dataparser_a1.h \
     impl/dataparser_a1_device_data.h \
     impl/dataparser_a1s.h \
@@ -144,6 +150,7 @@ HEADERS += \
     impl/dataparser_ps1_device_data.h \
     impl/dataparser_sl4.h \
     impl/dataparser_sl4_device_data.h \
+    impl/dataparser_treat_plan.h \
     impl/dataparserfactory.h \
     impl/dataparserfactory_device.h \
     impl/dataparserfactory_device_a1.h \
@@ -170,10 +177,11 @@ HEADERS += \
     interface/IZTServer_api_Listener.h \
     interface/IZTServer_tcp_Listener.h \
     mainwindow.h \
-    qstringtools.h \
     util/httpclient.h \
+    util/jsontools.h \
     util/log.h \
     util/logmgr.h \
+    util/qstringtools.h \
     util/tcpserver.h \
 
 FORMS += \

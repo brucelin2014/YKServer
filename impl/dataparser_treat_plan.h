@@ -1,17 +1,17 @@
 // 2023-06-16, Bruce
 
-#ifndef DATAPARSER_A6_2_H
-#define DATAPARSER_A6_2_H
+#ifndef DATAPARSER_Treat_Plan_H
+#define DATAPARSER_Treat_Plan_H
 
 #include "interface/IDataParser.h"
 
 // 解析中天平台HTTP返回数据
-class DataParser_A6_2 : public IDataParser
+class DataParser_Treat_Plan : public IDataParser
 {
 public:
-    DataParser_A6_2();
+    DataParser_Treat_Plan();
 
     virtual IRespondData* ParseData(const ZTS_API& api, const QString& obj) override;
 };
 
-#endif // DATAPARSER_A6_2_H
+#endif // DATAPARSER_Treat_Plan_H

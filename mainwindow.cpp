@@ -35,7 +35,9 @@
 
 #include "entity/data_control.h"
 
-#include "qstringtools.h"
+#include "util/jsontools.h"
+#include "impl/dataparser.h"
+#include "impl/dataparser_treat_plan.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -137,53 +139,59 @@ MainWindow::~MainWindow()
 // HTTP-获取返回结果
 void MainWindow::OnRespond(const QString& urlRequest, const QString& respond)
 {
-    if (m_pDataParser != nullptr)
+    // 解析中天平台HTTP返回数据
+    ZTS_API api = GetApiType(urlRequest);
+    DataParser dataParser;
+    RespondObj* pResObj = dataParser.ParseData(respond);
+    if (pResObj == nullptr)
+        return;
+
+    // 发送远程控制指令给设备
+    if (api == API_getTreatStatus)
     {
-        // 解析中天平台HTTP返回数据
-        ZTS_API api = GetApiType(urlRequest);
-        IRespondData* pResData = m_pDataParser->ParseData(api, respond);
-
-        // 处理计划治疗方案
-        if (pResData != nullptr && !pResData->GetPatientId().isEmpty() && api == API_getTreatPlan)
+        Send_Control(pResObj);
+    }
+    else if (api == API_getTreatPlan) // 下发医嘱
+    {
+        if (dataParser.UpdateObj(pResObj->obj))
         {
-            if (m_pResData != nullptr)
-            {
-                delete m_pResData;
-                m_pResData = nullptr;
-            }
-            m_pResData = pResData;
-
             // 发送治疗方案到设备
-            Send_Respond(pResData, m_Config.Get_sysCode());
+            Send_Respond(pResObj->obj);
             //
-
-            QMetaObject::invokeMethod(qApp, [this, pResData] {
-                ui->le_recordId->setText(pResData->GetRecordId());
-                ui->le_patientID->setText(pResData->GetPatientId());
-                m_Config.m_ConfigObj.Set_recordId(pResData->GetRecordId());
-            });
         }
-        // 发送远程控制指令给设备
-        else if (pResData != nullptr && api == API_getTreatStatus)
+
+        DataParser_Treat_Plan dataParser_treat;
+        IRespondData* pResData = dataParser_treat.ParseData(api, pResObj->obj);
+        if (pResData != nullptr)
         {
-            if (m_pResData != nullptr)
+            // 处理计划治疗方案
+            if (!pResData->GetPatientId().isEmpty())
             {
-                delete m_pResData;
-                m_pResData = nullptr;
+                if (m_pResData != nullptr)
+                {
+                    delete m_pResData;
+                    m_pResData = nullptr;
+                }
+                m_pResData = pResData;
+
+                QMetaObject::invokeMethod(qApp, [this, pResData] {
+                    ui->le_recordId->setText(pResData->GetRecordId());
+                    ui->le_patientID->setText(pResData->GetPatientId());
+                    m_Config.m_ConfigObj.Set_recordId(pResData->GetRecordId());
+                });
             }
-            m_pResData = pResData;
-
-            Send_Control(pResData);
-        }
-        else
-        {
-            if (pResData != nullptr)
+            else
             {
-                delete pResData;
-                pResData = nullptr;
+                if (pResData != nullptr)
+                {
+                    delete pResData;
+                    pResData = nullptr;
+                }
             }
         }
     }
+    delete pResObj;
+    pResObj = nullptr;
 
     QMetaObject::invokeMethod(qApp, [this, urlRequest, respond] {
         ui->le_url->setText(urlRequest);
@@ -416,229 +424,27 @@ void MainWindow::closeEvent(QCloseEvent* event)
     Log::instance()->info("\r\n*** Hide window ***");
 }
 
-void MainWindow::Send_Respond(IRespondData* pResData, const QString& sysCode)
-{
-    if (sysCode == "YKA1S")
-        Send_A1S(pResData);
-    else if (sysCode == "YKSL4" || sysCode == "YKSL4I")
-        Send_SL4(pResData);
-    else if (sysCode == "YKA1" || sysCode == "YKA1-3" || sysCode == "YKA1-3S")
-        Send_A1(pResData);
-    else if (sysCode == "YKA3-2" || sysCode == "YKA3")
-        Send_A3(pResData);
-    else if (sysCode == "YKA6-2S" || sysCode == "YKA6" || sysCode == "YKA6-2")
-        Send_A6(pResData);
-    else if (sysCode == "YKA8" || sysCode == "YKA8-3")
-        Send_A8(pResData);
-    else if (sysCode == "YKPS1" || sysCode == "YKPS2")
-        Send_PS1(pResData);
-}
-
 // 发送远程控制指令
-void MainWindow::Send_Control(IRespondData* pResData)
+void MainWindow::Send_Control(RespondObj* pResObj)
 {
     // 发送远程控制指令到设备
-    Data_Control* pData = (Data_Control*)pResData;
-    if (pData != nullptr)
-    {
-        pData->DataType = 6;
+    Data_Control data;
+    data.Status = pResObj->status;
+    data.DataType = 6;
 
-        m_tcpServer.Send(pData->ToJson());
+    m_tcpServer.Send(data.ToJson());
 
-        ui->te_tcp->append(QString("%1 >>> Send： %2\r\n")
-                           .arg(getTime())
-                           .arg(pData->ToJson().toStdString().c_str()));
-    }
-    //
+    ui->te_tcp->append(QString("%1 >>> Send： %2\r\n")
+                       .arg(getTime())
+                       .arg(data.ToJson().toStdString().c_str()));
 }
 
-void MainWindow::Send_A1S(IRespondData* pResData)
+// 发送医嘱数据
+void MainWindow::Send_Respond(const QString& obj)
 {
-    // 发送治疗方案到设备
-    RespondObj_A1S* pA1sData = (RespondObj_A1S*)pResData;
-    if (pA1sData != nullptr && pA1sData->obj.IsValid())
-    {
-        Data_Device_Data_A1S devData;
-        devData.Status = 0;
-        devData.DataType = 3;
-        devData.Duration = QStringTools::String2Uint(pA1sData->obj.Duration);
-        devData.VelocityCur = QStringTools::String2Uint(pA1sData->obj.VelocityCur);
-        devData.AngleFromLeft = QStringTools::String2Uint(pA1sData->obj.AngleFromLeft);
-        devData.AngleToLeft = QStringTools::String2Uint(pA1sData->obj.AngleToLeft);
-        devData.AngleFromRight = QStringTools::String2Uint(pA1sData->obj.AngleFromRight);
-        devData.AngleToRight = QStringTools::String2Uint(pA1sData->obj.AngleToRight);
+    m_tcpServer.Send(obj.toLatin1());
 
-        devData.patientId = pA1sData->obj.patientId;
-        devData.patientName = pA1sData->obj.patientName;
-        devData.sex = pA1sData->obj.sex;
-        devData.age = pA1sData->obj.age;
-        devData.recordId = pA1sData->GetRecordId();
-
-        m_tcpServer.Send(devData.ToJson());
-
-        ui->te_tcp->append(QString("%1 >>> Send： %2\r\n")
-                           .arg(getTime())
-                           .arg(devData.ToJson().toStdString().c_str()));
-    }
-    //
-}
-
-void MainWindow::Send_SL4(IRespondData* pResData)
-{
-    // 发送治疗方案到设备
-    RespondObj_SL4* pSL4Data = (RespondObj_SL4*)pResData;
-    if (pSL4Data != nullptr && pSL4Data->obj.IsValid())
-    {
-        Data_Device_Data_SL4 devData;
-        devData.Status = 0;
-        devData.DataType = 3;
-
-        devData.Mode = pSL4Data->obj.Mode;
-        devData.Content = pSL4Data->obj.Content;
-        devData.Body = pSL4Data->obj.Body;
-
-        devData.patientId = pSL4Data->obj.patientId;
-        devData.patientName = pSL4Data->obj.patientName;
-        devData.sex = pSL4Data->obj.sex;
-        devData.age = pSL4Data->obj.age;
-        devData.recordId = pSL4Data->GetRecordId();
-
-        m_tcpServer.Send(devData.ToJson());
-
-        ui->te_tcp->append(QString("%1 >>> Send： %2\r\n")
-                           .arg(getTime())
-                           .arg(devData.ToJson().toStdString().c_str()));
-    }
-    //
-}
-
-void MainWindow::Send_A1(IRespondData* pResData)
-{
-    // 发送治疗方案到设备
-    RespondObj_A1* pA1sData = (RespondObj_A1*)pResData;
-    if (pA1sData != nullptr && pA1sData->obj.IsValid())
-    {
-        Data_Device_Data_A1 devData;
-        devData.Status = 0;
-        devData.DataType = 3;
-        devData.Duration = QStringTools::String2Uint(pA1sData->obj.Duration);
-        devData.VelocityCur = QStringTools::String2Uint(pA1sData->obj.VelocityCur);
-        devData.AngleFromLeft = QStringTools::String2Uint(pA1sData->obj.AngleFromLeft);
-        devData.AngleToLeft = QStringTools::String2Uint(pA1sData->obj.AngleToLeft);
-        devData.AngleFromRight = QStringTools::String2Uint(pA1sData->obj.AngleFromRight);
-        devData.AngleToRight = QStringTools::String2Uint(pA1sData->obj.AngleToRight);
-
-        devData.patientId = pA1sData->obj.patientId;
-        devData.patientName = pA1sData->obj.patientName;
-        devData.sex = pA1sData->obj.sex;
-        devData.age = pA1sData->obj.age;
-        devData.recordId = pA1sData->GetRecordId();
-
-        m_tcpServer.Send(devData.ToJson());
-
-        ui->te_tcp->append(QString("%1 >>> Send： %2\r\n")
-                           .arg(getTime())
-                           .arg(devData.ToJson().toStdString().c_str()));
-    }
-    //
-}
-
-void MainWindow::Send_PS1(IRespondData* pResData)
-{
-    // 发送治疗方案到设备
-    RespondObj_PS1* pA1sData = (RespondObj_PS1*)pResData;
-    if (pA1sData != nullptr && pA1sData->obj.IsValid())
-    {
-        Data_Device_Data_PS1 devData;
-        devData.Status = 0;
-        devData.DataType = 3;
-
-        devData.patientId = pA1sData->obj.patientId;
-        devData.patientName = pA1sData->obj.patientName;
-        devData.sex = pA1sData->obj.sex;
-        devData.age = pA1sData->obj.age;
-        devData.recordId = pA1sData->GetRecordId();
-
-        m_tcpServer.Send(devData.ToJson());
-
-        ui->te_tcp->append(QString("%1 >>> Send： %2\r\n")
-                           .arg(getTime())
-                           .arg(devData.ToJson().toStdString().c_str()));
-    }
-    //
-}
-
-void MainWindow::Send_A3(IRespondData* pResData)
-{
-    // 发送治疗方案到设备
-    RespondObj_A3_2* pA1sData = (RespondObj_A3_2*)pResData;
-    if (pA1sData != nullptr && pA1sData->obj.IsValid())
-    {
-        Data_Device_Data_A3_2 devData;
-        devData.Status = 0;
-        devData.DataType = 3;
-
-        devData.patientId = pA1sData->obj.patientId;
-        devData.patientName = pA1sData->obj.patientName;
-        devData.sex = pA1sData->obj.sex;
-        devData.age = pA1sData->obj.age;
-        devData.recordId = pA1sData->GetRecordId();
-
-
-        ui->te_tcp->append(QString("%1 >>> Send： %2\r\n")
-                           .arg(getTime())
-                           .arg(devData.ToJson().toStdString().c_str()));
-        m_tcpServer.Send(devData.ToJson());
-    }
-    //
-}
-
-void MainWindow::Send_A6(IRespondData* pResData)
-{
-    // 发送治疗方案到设备
-    RespondObj_A6_2* pA1sData = (RespondObj_A6_2*)pResData;
-    if (pA1sData != nullptr && pA1sData->obj.IsValid())
-    {
-        Data_Device_Data_A6_2 devData;
-        devData.Status = 0;
-        devData.DataType = 3;
-
-        devData.patientId = pA1sData->obj.patientId;
-        devData.patientName = pA1sData->obj.patientName;
-        devData.sex = pA1sData->obj.sex;
-        devData.age = pA1sData->obj.age;
-        devData.recordId = pA1sData->GetRecordId();
-
-        m_tcpServer.Send(devData.ToJson());
-
-        ui->te_tcp->append(QString("%1 >>> Send： %2\r\n")
-                           .arg(getTime())
-                           .arg(devData.ToJson().toStdString().c_str()));
-    }
-    //
-}
-
-void MainWindow::Send_A8(IRespondData* pResData)
-{
-    // 发送治疗方案到设备
-    RespondObj_A8* pA1sData = (RespondObj_A8*)pResData;
-    if (pA1sData != nullptr && pA1sData->obj.IsValid())
-    {
-        Data_Device_Data_A8 devData;
-        devData.Status = 0;
-        devData.DataType = 3;
-
-        devData.patientId = pA1sData->obj.patientId;
-        devData.patientName = pA1sData->obj.patientName;
-        devData.sex = pA1sData->obj.sex;
-        devData.age = pA1sData->obj.age;
-        devData.recordId = pA1sData->GetRecordId();
-
-        m_tcpServer.Send(devData.ToJson());
-
-        ui->te_tcp->append(QString("%1 >>> Send： %2\r\n")
-                           .arg(getTime())
-                           .arg(devData.ToJson().toStdString().c_str()));
-    }
-    //
+    ui->te_tcp->append(QString("%1 >>> Send： %2\r\n")
+                       .arg(getTime())
+                       .arg(obj.toStdString().c_str()));
 }

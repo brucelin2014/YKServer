@@ -11,7 +11,7 @@ class DataParser_PS1 : public IDataParser
 public:
     DataParser_PS1();
 
-    virtual IRespondData* ParseData(const ZTS_API& api, const QString& respond) override;
+    virtual IRespondData* ParseData(const ZTS_API& api, const QString& obj) override;
 };
 
 #endif // DATAPARSER_PS1_H

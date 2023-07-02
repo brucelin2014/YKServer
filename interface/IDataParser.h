@@ -12,7 +12,7 @@ class IDataParser
 public:
     virtual ~IDataParser() {}
 
-    virtual IRespondData* ParseData(const ZTS_API& api, const QString& respond) = 0;
+    virtual IRespondData* ParseData(const ZTS_API& api, const QString& obj) = 0;
 };
 
 #endif // IDATAPARSER_H

@@ -7,6 +7,7 @@
 #include <QJsonParseError>
 #include <QJsonValue>
 #include <QDebug>
+#include "util/jsontools.h"
 
 Data_Device_Data_A1S::Data_Device_Data_A1S()
 {
@@ -36,10 +37,5 @@ QByteArray Data_Device_Data_A1S::ToJson()
     obj.insert("age", age);
     obj.insert("recordId", recordId);
 
-    QJsonDocument doc;
-    doc.setObject(obj);
-    QByteArray byteArray = doc.toJson(QJsonDocument::Compact);
-    //QString strJson(byteArray);
-    //qDebug() << strJson;
-    return byteArray;
+    return JsonTools::ToArray(obj);
 }

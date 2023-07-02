@@ -11,7 +11,7 @@ class DataParser_A3_2 : public IDataParser
 public:
     DataParser_A3_2();
 
-    virtual IRespondData* ParseData(const ZTS_API& api, const QString& respond) override;
+    virtual IRespondData* ParseData(const ZTS_API& api, const QString& obj) override;
 };
 
 #endif // DATAPARSER_A3_2_H

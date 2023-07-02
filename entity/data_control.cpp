@@ -7,8 +7,10 @@
 #include <QJsonParseError>
 #include <QJsonValue>
 #include <QDebug>
+#include "util/jsontools.h"
 
 Data_Control::Data_Control()
+    : Status("0")
 {
 
 }
@@ -22,10 +24,5 @@ QByteArray Data_Control::ToJson()
 
     obj.insert("Status", Status);
 
-    QJsonDocument doc;
-    doc.setObject(obj);
-    QByteArray byteArray = doc.toJson(QJsonDocument::Compact);
-    //QString strJson(byteArray);
-    //qDebug() << strJson;
-    return byteArray;
+    return JsonTools::ToArray(obj);
 }

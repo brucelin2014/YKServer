@@ -18,6 +18,8 @@
 #include "impl/systemtray.h"
 #include <QCloseEvent>
 
+#include "entity/respondobj.h"
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
@@ -93,16 +95,10 @@ private slots:
 protected:
     virtual void closeEvent(QCloseEvent* event) override;
 
-    void Send_Respond(IRespondData* pResData, const QString& sysCode);
-    void Send_A1S(IRespondData* pResData);
-    void Send_SL4(IRespondData* pResData);
-    void Send_A1(IRespondData* pResData);
-    void Send_PS1(IRespondData* pResData);
-    void Send_A3(IRespondData* pResData);
-    void Send_A6(IRespondData* pResData);
-    void Send_A8(IRespondData* pResData);
-
     // 发送远程控制指令
-    void Send_Control(IRespondData* pResData);
+    void Send_Control(RespondObj* pResObj);
+
+    // 发送医嘱数据
+    void Send_Respond(const QString& obj);
 };
 #endif // MAINWINDOW_H

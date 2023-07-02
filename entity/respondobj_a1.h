@@ -9,7 +9,7 @@
 #include "interface/IRespondData.h"
 
 class RespondObj_A1
-        : public RespondObj   // 物联平台回复数据包格式
+        : public RespondObj
         , public IRespondData // 医嘱接口
 {
     Q_OBJECT

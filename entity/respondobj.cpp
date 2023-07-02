@@ -7,5 +7,6 @@ RespondObj::RespondObj()
     , msg("")
     , total(0)
     , obj("")
+    , status("0")
 {
 }

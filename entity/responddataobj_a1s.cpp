@@ -7,6 +7,7 @@
 #include <QJsonParseError>
 #include <QJsonValue>
 #include <QDebug>
+#include "util/jsontools.h"
 
 RespondDataObj_A1S::RespondDataObj_A1S()
 {
@@ -31,12 +32,7 @@ QByteArray RespondDataObj_A1S::ToJson()
     obj.insert("VelocityCur", VelocityCur);
     obj.insert("Duration", Duration);
 
-    QJsonDocument doc;
-    doc.setObject(obj);
-    QByteArray byteArray = doc.toJson(QJsonDocument::Compact);
-    QString strJson(byteArray);
-    qDebug() << strJson;
-    return byteArray;
+    return JsonTools::ToArray(obj);
 }
 
 bool RespondDataObj_A1S::IsValid()

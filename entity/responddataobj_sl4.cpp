@@ -7,6 +7,7 @@
 #include <QJsonParseError>
 #include <QJsonValue>
 #include <QDebug>
+#include "util/jsontools.h"
 
 RespondDataObj_SL4::RespondDataObj_SL4()
 {
@@ -28,12 +29,7 @@ QByteArray RespondDataObj_SL4::ToJson()
     obj.insert("Content", Content);
     obj.insert("Body", Body);
 
-    QJsonDocument doc;
-    doc.setObject(obj);
-    QByteArray byteArray = doc.toJson(QJsonDocument::Compact);
-    QString strJson(byteArray);
-    qDebug() << strJson;
-    return byteArray;
+    return JsonTools::ToArray(obj);
 }
 
 bool RespondDataObj_SL4::IsValid()

@@ -3,7 +3,6 @@
 #include "respondobj_a1.h"
 
 RespondObj_A1::RespondObj_A1()
-    : status("0")
 {
 
 }

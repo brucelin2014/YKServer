@@ -4,6 +4,7 @@
 #define DATA_CONTROL_H
 
 #include <QObject>
+#include <QString>
 #include "interface/IDataBase_Device.h"
 #include "database_device.h"
 
@@ -19,7 +20,7 @@ public:
     /// <summary>
     /// 治疗状态
     /// 0:待治疗；1:开始治疗；2：结束治疗;3：暂停治疗
-    int Status = 0;
+    QString Status = "0";
 
     QByteArray ToJson();
 };

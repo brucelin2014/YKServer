@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/">
+        <file>yk.ico</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,10 @@
+http://117.176.219.29:9080/devices/testData?deviceId=20141211A1J07
+{"code":1,"msg":"成功","obj":null,"total":0}
+
+
+
+http://117.176.219.29:9080/devices/getTreatPlan?deviceId=20141211A1J07&sysCode=YKA1S
+{"code":1,"msg":"成功","obj":{"recordId":"E5BFA6D029D246BAB1A9984204D6DC47","patientName":"测试患者","AngleToLeft":"20","AngleToRight":"30","patientId":"511011111565894531","sex":"男","Duration":"20","AngleFromLeft":"10","VelocityCur":"10","deviceId":"20141211A1J07","age":"24","AngleFromRight":"5"},"total":0}
+
+
+{"DataType":1,"DeviceType":"A1S","DeviceMAC":"B42E99EF1585","ScramStatus":0,"SpasmStatus":0}
